@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 const ERROR_MESSAGES: Record<string, string> = {
   "invalid-link":
-    "That sign-in link is invalid or has expired. Request a new one below.",
+    "That sign-in link couldn't be verified. Links expire after a short time and must be opened in the same browser that requested them — request a fresh one below.",
 };
 
 export default async function LoginPage({

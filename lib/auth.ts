@@ -2,6 +2,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAuthClient } from "./supabase/server";
+import { ensureProfile } from "./db";
 import type { User } from "./types";
 
 export const getCurrentUser = cache(async (): Promise<User | null> => {
@@ -10,7 +11,15 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user?.email) return null;
-  return { id: user.id, email: user.email, createdAt: user.created_at };
+  // Guarantees the account exists in our database (profiles row), so
+  // registrations and organizations always have something to attach to.
+  const profile = await ensureProfile(user.id, user.email);
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: profile.displayName,
+    createdAt: user.created_at,
+  };
 });
 
 export async function requireUser(nextPath: string): Promise<User> {

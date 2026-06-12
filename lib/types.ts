@@ -52,6 +52,7 @@ export interface Event {
 export interface User {
   id: string;
   email: string;
+  displayName: string | null;
   createdAt: string;
 }
 

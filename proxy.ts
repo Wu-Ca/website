@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/server";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/org"];
+const PROTECTED_PREFIXES = ["/dashboard", "/org", "/profile"];
 
 // Refreshes the Supabase session cookie on every request (Server Components
 // can't write cookies) and optimistically redirects signed-out visitors away
