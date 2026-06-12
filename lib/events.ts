@@ -7,9 +7,18 @@ import {
   listUserRegistrations,
 } from "./db";
 
-/** All events: aggregated library events plus community-organization events. */
+/**
+ * All events: aggregated library events plus community-organization events.
+ * If the database is unreachable, degrades to library events only rather
+ * than failing the whole listing.
+ */
 export async function getAllEvents(): Promise<Event[]> {
-  return [...EVENTS, ...(await listAllOrgEvents())];
+  try {
+    return [...EVENTS, ...(await listAllOrgEvents())];
+  } catch (error) {
+    console.error("Failed to load community events; serving library events only:", error);
+    return [...EVENTS];
+  }
 }
 
 export async function getEvent(id: string): Promise<Event | undefined> {

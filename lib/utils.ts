@@ -21,20 +21,25 @@ export function formatDistance(miles: number): string {
   return `${Math.round(miles)} mi`;
 }
 
+/** YYYY-MM-DD for "now" in NYC — identical on server and client, avoiding hydration mismatches. */
+function nycDateString(daysFromNow = 0): string {
+  return new Date(Date.now() + daysFromNow * 86_400_000).toLocaleDateString(
+    "en-CA",
+    { timeZone: "America/New_York" }
+  );
+}
+
 export function formatEventDate(dateStr: string, startTime: string, endTime: string): string {
-  const date = new Date(`${dateStr}T${startTime}`);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-
-  const isToday = date.toDateString() === today.toDateString();
-  const isTomorrow = date.toDateString() === tomorrow.toDateString();
-
-  const dayLabel = isToday
-    ? "Today"
-    : isTomorrow
-    ? "Tomorrow"
-    : date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const dayLabel =
+    dateStr === nycDateString()
+      ? "Today"
+      : dateStr === nycDateString(1)
+      ? "Tomorrow"
+      : new Date(`${dateStr}T12:00:00`).toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
 
   const start = formatTime(startTime);
   const end = formatTime(endTime);
