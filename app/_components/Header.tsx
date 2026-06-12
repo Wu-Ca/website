@@ -47,12 +47,20 @@ export default async function Header() {
               </form>
             </>
           ) : (
-            <Link
-              href="/login"
-              className="text-sm font-semibold text-white bg-emerald-800 hover:bg-emerald-700 px-4 py-1.5 rounded-full transition-colors"
-            >
-              Sign in
-            </Link>
+            <>
+              <Link
+                href="/login"
+                className="text-sm font-medium text-stone-600 hover:text-emerald-800"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/login?mode=signup"
+                className="text-sm font-semibold text-white bg-emerald-800 hover:bg-emerald-700 px-4 py-1.5 rounded-full transition-colors"
+              >
+                Create account
+              </Link>
+            </>
           )}
         </nav>
       </div>

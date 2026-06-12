@@ -8,29 +8,7 @@ const PROTECTED_PREFIXES = ["/dashboard", "/org", "/profile"];
 // can't write cookies) and optimistically redirects signed-out visitors away
 // from protected routes. Real authorization happens in lib/auth.ts and the
 // server actions, close to the data.
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export default async function proxy(request: NextRequest) {
-  // If a magic-link redirect lands anywhere other than /auth/callback
-  // (e.g. Supabase fell back to the bare Site URL because the callback
-  // wasn't in the redirect allowlist), route it to the callback so the
-  // sign-in still completes instead of being silently ignored.
-  const search = request.nextUrl.searchParams;
-  const strayCode = search.get("code");
-  const strayTokenHash = search.get("token_hash");
-  if (
-    request.nextUrl.pathname !== "/auth/callback" &&
-    ((strayCode && UUID_RE.test(strayCode)) || strayTokenHash)
-  ) {
-    const callbackUrl = new URL("/auth/callback", request.nextUrl);
-    for (const [key, value] of search) callbackUrl.searchParams.set(key, value);
-    if (!search.has("next") && request.nextUrl.pathname !== "/") {
-      callbackUrl.searchParams.set("next", request.nextUrl.pathname);
-    }
-    return NextResponse.redirect(callbackUrl);
-  }
-
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
