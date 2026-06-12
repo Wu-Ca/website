@@ -24,15 +24,45 @@ export async function createOrganization(
   const user = await requireUser("/org");
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
+  let website = String(formData.get("website") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const address = String(formData.get("address") ?? "").trim();
 
+  const errors: Record<string, string> = {};
   if (name.length < 2) {
-    return { errors: { name: "Organization name must be at least 2 characters." } };
+    errors.name = "Organization name must be at least 2 characters.";
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = "Enter a contact email for your organization.";
+  }
+  if (website) {
+    if (!/^https?:\/\//i.test(website)) website = `https://${website}`;
+    try {
+      new URL(website);
+    } catch {
+      errors.website = "Enter a valid website URL, or leave it blank.";
+    }
+  }
+  if (phone && !/^[\d\s()+.-]{7,20}$/.test(phone)) {
+    errors.phone = "Enter a valid phone number, or leave it blank.";
+  }
+  if (Object.keys(errors).length > 0) {
+    return { errors };
   }
   if (await getOrganizationByOwner(user.id)) {
     return { errors: { name: "You already manage an organization." } };
   }
 
-  await createOrganizationDb({ name, description, ownerUserId: user.id });
+  await createOrganizationDb({
+    name,
+    description,
+    website: website || null,
+    phone: phone || null,
+    email,
+    address: address || null,
+    ownerUserId: user.id,
+  });
   revalidatePath("/org");
   return undefined;
 }

@@ -9,10 +9,11 @@ import {
 import { formatFullDate, formatTime } from "@/lib/utils";
 import { cancelOrgEvent, restoreOrgEvent } from "@/app/actions/org";
 import Header from "@/app/_components/Header";
+import CalendarSyncCard from "@/app/_components/CalendarSyncCard";
 import CreateOrgForm from "./CreateOrgForm";
 import ShareButtons from "./_components/ShareButtons";
 import CrossPostButtons from "./_components/CrossPostButtons";
-import { eventLocation } from "@/lib/calendar";
+import { calendarSubscribeLinks, eventLocation } from "@/lib/calendar";
 import type { Event } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -50,6 +51,26 @@ export default async function OrgPage() {
     `${b.date}T${b.startTime}`.localeCompare(`${a.date}T${a.startTime}`)
   );
 
+  const contactDetails = [
+    org.website && {
+      label: "Website",
+      value: org.website.replace(/^https?:\/\//, ""),
+      href: org.website,
+    },
+    org.email && { label: "Email", value: org.email, href: `mailto:${org.email}` },
+    org.phone && { label: "Phone", value: org.phone, href: `tel:${org.phone}` },
+    org.address && { label: "Address", value: org.address },
+  ].filter((d): d is { label: string; value: string; href?: string } =>
+    Boolean(d)
+  );
+
+  const feedLinks = org.calendarToken
+    ? calendarSubscribeLinks(
+        `${origin}/calendar/org/${org.calendarToken}`,
+        `${org.name} — events`
+      )
+    : null;
+
   return (
     <>
       <Header />
@@ -62,6 +83,29 @@ export default async function OrgPage() {
                 Organization dashboard
                 {org.description ? ` — ${org.description}` : ""}
               </p>
+              {contactDetails.length > 0 && (
+                <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-300">
+                  {contactDetails.map((d) =>
+                    d.href ? (
+                      <a
+                        key={d.label}
+                        href={d.href}
+                        className="hover:text-white"
+                        target={d.label === "Website" ? "_blank" : undefined}
+                        rel={
+                          d.label === "Website"
+                            ? "noopener noreferrer"
+                            : undefined
+                        }
+                      >
+                        {d.value}
+                      </a>
+                    ) : (
+                      <span key={d.label}>{d.value}</span>
+                    )
+                  )}
+                </p>
+              )}
             </div>
             <Link
               href="/org/events/new"
@@ -72,7 +116,17 @@ export default async function OrgPage() {
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-8">
+          {feedLinks && (
+            <CalendarSyncCard
+              heading="Share your events calendar"
+              description="Give this feed to your community — anyone can subscribe in Google, Apple, or Outlook calendar and see your events the moment you publish them."
+              feedUrl={feedLinks.feedUrl}
+              webcalUrl={feedLinks.webcal}
+              googleUrl={feedLinks.google}
+              outlookUrl={feedLinks.outlook}
+            />
+          )}
           {events.length === 0 ? (
             <div className="bg-white rounded-xl border border-stone-200 p-8 text-center">
               <p className="text-sm text-stone-500">
