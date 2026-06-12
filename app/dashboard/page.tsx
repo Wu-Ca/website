@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage() {
   const user = await requireUser("/dashboard");
-  const registrations = getUserRegistrationsWithEvents(user.id);
-  const org = getOrganizationByOwner(user.id);
+  const registrations = await getUserRegistrationsWithEvents(user.id);
+  const org = await getOrganizationByOwner(user.id);
 
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = registrations.filter(({ event }) => event.date >= today);

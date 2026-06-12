@@ -28,11 +28,11 @@ export async function createOrganization(
   if (name.length < 2) {
     return { errors: { name: "Organization name must be at least 2 characters." } };
   }
-  if (getOrganizationByOwner(user.id)) {
+  if (await getOrganizationByOwner(user.id)) {
     return { errors: { name: "You already manage an organization." } };
   }
 
-  createOrganizationDb({ name, description, ownerUserId: user.id });
+  await createOrganizationDb({ name, description, ownerUserId: user.id });
   revalidatePath("/org");
   return undefined;
 }
@@ -46,7 +46,7 @@ export async function createOrgEvent(
   formData: FormData
 ): Promise<EventFormState> {
   const user = await requireUser("/org/events/new");
-  const org = getOrganizationByOwner(user.id);
+  const org = await getOrganizationByOwner(user.id);
   if (!org) redirect("/org");
 
   const values = {
@@ -128,7 +128,7 @@ export async function createOrgEvent(
     interestedCount: 0,
     organizationId: org.id,
   };
-  createOrgEventDb(event);
+  await createOrgEventDb(event);
 
   revalidatePath("/");
   revalidatePath("/org");
@@ -137,12 +137,12 @@ export async function createOrgEvent(
 
 async function setCanceled(formData: FormData, isCanceled: boolean): Promise<void> {
   const user = await requireUser("/org");
-  const org = getOrganizationByOwner(user.id);
+  const org = await getOrganizationByOwner(user.id);
   const eventId = String(formData.get("eventId") ?? "");
-  const event = getOrgEventById(eventId);
+  const event = await getOrgEventById(eventId);
   if (!org || !event || event.organizationId !== org.id) return;
 
-  setOrgEventCanceled(eventId, isCanceled);
+  await setOrgEventCanceled(eventId, isCanceled);
   revalidatePath("/");
   revalidatePath("/org");
   revalidatePath(`/events/${eventId}`);

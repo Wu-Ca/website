@@ -1,18 +1,23 @@
 import type { Event, Registration } from "./types";
 import { EVENTS } from "./mock-data";
-import { listAllOrgEvents, getOrgEventById, listUserRegistrations } from "./db";
+import {
+  listAllOrgEvents,
+  getOrgEventById,
+  getOrgEventsByIds,
+  listUserRegistrations,
+} from "./db";
 
 /** All events: aggregated library events plus community-organization events. */
-export function getAllEvents(): Event[] {
-  return [...EVENTS, ...listAllOrgEvents()];
+export async function getAllEvents(): Promise<Event[]> {
+  return [...EVENTS, ...(await listAllOrgEvents())];
 }
 
-export function getEvent(id: string): Event | undefined {
-  return EVENTS.find((e) => e.id === id) ?? getOrgEventById(id);
+export async function getEvent(id: string): Promise<Event | undefined> {
+  return EVENTS.find((e) => e.id === id) ?? (await getOrgEventById(id));
 }
 
-export function getRelatedEvents(event: Event, limit = 3): Event[] {
-  return getAllEvents()
+export async function getRelatedEvents(event: Event, limit = 3): Promise<Event[]> {
+  return (await getAllEvents())
     .filter(
       (e) =>
         e.id !== event.id &&
@@ -27,12 +32,22 @@ export interface RegistrationWithEvent {
   event: Event;
 }
 
-export function getUserRegistrationsWithEvents(
+export async function getUserRegistrationsWithEvents(
   userId: string
-): RegistrationWithEvent[] {
-  return listUserRegistrations(userId)
+): Promise<RegistrationWithEvent[]> {
+  const registrations = await listUserRegistrations(userId);
+  const orgEventIds = registrations
+    .map((r) => r.eventId)
+    .filter((id) => !EVENTS.some((e) => e.id === id));
+  const orgEvents = await getOrgEventsByIds(orgEventIds);
+  const eventById = new Map<string, Event>([
+    ...EVENTS.map((e) => [e.id, e] as const),
+    ...orgEvents.map((e) => [e.id, e] as const),
+  ]);
+
+  return registrations
     .map((registration) => {
-      const event = getEvent(registration.eventId);
+      const event = eventById.get(registration.eventId);
       return event ? { registration, event } : null;
     })
     .filter((r): r is RegistrationWithEvent => r !== null)

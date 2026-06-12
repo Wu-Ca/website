@@ -26,22 +26,6 @@ export default function LoginForm({ next, initialError }: Props) {
             expires in 15 minutes.
           </p>
         </div>
-        {state.devLink && (
-          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-            <p className="text-xs font-semibold text-amber-900 uppercase tracking-wide">
-              Development mode
-            </p>
-            <p className="mt-1 text-sm text-amber-800">
-              No email provider is configured, so here&apos;s your link:
-            </p>
-            <a
-              href={state.devLink}
-              className="mt-2 inline-block text-sm font-medium text-amber-900 underline break-all"
-            >
-              {state.devLink}
-            </a>
-          </div>
-        )}
         <a
           href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
           className="text-sm text-stone-500 hover:text-stone-800"

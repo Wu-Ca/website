@@ -25,7 +25,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const event = getEvent(id);
+  const event = await getEvent(id);
   if (!event) return {};
   return {
     title: `${event.title} — CommonGround NYC`,
@@ -35,19 +35,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function EventPage({ params }: Props) {
   const { id } = await params;
-  const event = getEvent(id);
+  const event = await getEvent(id);
   if (!event) notFound();
 
   const user = await getCurrentUser();
   const registration = user
-    ? getActiveRegistration(user.id, event.id)
+    ? await getActiveRegistration(user.id, event.id)
     : undefined;
-  const registeredCount = countEventRegistrations(event.id);
+  const registeredCount = await countEventRegistrations(event.id);
   const hostOrg = event.organizationId
-    ? getOrganizationById(event.organizationId)
+    ? await getOrganizationById(event.organizationId)
     : undefined;
 
-  const related = getRelatedEvents(event);
+  const related = await getRelatedEvents(event);
   const categoryMeta = getCategoryMeta(event.category);
 
   const SOURCE_BADGE: Record<string, string> = {

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function NewEventPage() {
   const user = await requireUser("/org/events/new");
-  const org = getOrganizationByOwner(user.id);
+  const org = await getOrganizationByOwner(user.id);
   if (!org) redirect("/org");
 
   return (

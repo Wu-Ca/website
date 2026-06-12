@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import { sanitizeNextPath } from "@/lib/session";
+import { getCurrentUser, sanitizeNextPath } from "@/lib/auth";
 import Header from "@/app/_components/Header";
 import LoginForm from "./LoginForm";
 

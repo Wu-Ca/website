@@ -1,21 +1,14 @@
 "use server";
 
-import crypto from "node:crypto";
 import { redirect } from "next/navigation";
-import { createLoginToken } from "@/lib/db";
-import { hashToken, sanitizeNextPath, deleteSession } from "@/lib/session";
-import { sendMagicLinkEmail } from "@/lib/email";
-import { getOrigin } from "@/lib/auth";
-
-const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
+import { createAuthClient } from "@/lib/supabase/server";
+import { getOrigin, sanitizeNextPath } from "@/lib/auth";
 
 export type LoginState =
   | {
       error?: string;
       sent?: boolean;
       email?: string;
-      /** Shown in development when no email provider is configured. */
-      devLink?: string;
     }
   | undefined;
 
@@ -32,34 +25,32 @@ export async function requestMagicLink(
     return { error: "Please enter a valid email address." };
   }
 
-  const token = crypto.randomBytes(32).toString("base64url");
-  createLoginToken({
-    tokenHash: hashToken(token),
+  const origin = await getOrigin();
+  const supabase = await createAuthClient();
+  const { error } = await supabase.auth.signInWithOtp({
     email,
-    expiresAt: new Date(Date.now() + MAGIC_LINK_TTL_MS).toISOString(),
-    usedAt: null,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback${
+        next ? `?next=${encodeURIComponent(next)}` : ""
+      }`,
+    },
   });
 
-  const origin = await getOrigin();
-  const url = `${origin}/auth/verify?token=${token}${
-    next ? `&next=${encodeURIComponent(next)}` : ""
-  }`;
-
-  try {
-    const { delivered } = await sendMagicLinkEmail(email, url);
+  if (error) {
+    console.error("Failed to send magic link:", error.message);
     return {
-      sent: true,
-      email,
-      devLink:
-        !delivered && process.env.NODE_ENV === "development" ? url : undefined,
+      error:
+        error.status === 429
+          ? "Too many requests — please wait a minute and try again."
+          : "We couldn't send the email. Please try again.",
     };
-  } catch (error) {
-    console.error("Failed to send magic link:", error);
-    return { error: "We couldn't send the email. Please try again." };
   }
+
+  return { sent: true, email };
 }
 
 export async function logout(): Promise<void> {
-  await deleteSession();
+  const supabase = await createAuthClient();
+  await supabase.auth.signOut();
   redirect("/");
 }

@@ -3,8 +3,7 @@ import Link from "next/link";
 import { getOrigin, requireUser } from "@/lib/auth";
 import {
   getOrganizationByOwner,
-  getUserById,
-  listEventRegistrations,
+  listEventRegistrants,
   listOrgEvents,
 } from "@/lib/db";
 import { formatFullDate, formatTime } from "@/lib/utils";
@@ -20,7 +19,7 @@ export const metadata: Metadata = {
 
 export default async function OrgPage() {
   const user = await requireUser("/org");
-  const org = getOrganizationByOwner(user.id);
+  const org = await getOrganizationByOwner(user.id);
 
   if (!org) {
     return (
@@ -45,7 +44,7 @@ export default async function OrgPage() {
   }
 
   const origin = await getOrigin();
-  const events = listOrgEvents(org.id).sort((a, b) =>
+  const events = (await listOrgEvents(org.id)).sort((a, b) =>
     `${b.date}T${b.startTime}`.localeCompare(`${a.date}T${a.startTime}`)
   );
 
@@ -97,8 +96,8 @@ export default async function OrgPage() {
   );
 }
 
-function OrgEventRow({ event, origin }: { event: Event; origin: string }) {
-  const registrations = listEventRegistrations(event.id);
+async function OrgEventRow({ event, origin }: { event: Event; origin: string }) {
+  const registrants = await listEventRegistrants(event.id);
   const eventUrl = `${origin}/events/${event.id}`;
   const isPast = event.date < new Date().toISOString().slice(0, 10);
 
@@ -161,27 +160,24 @@ function OrgEventRow({ event, origin }: { event: Event; origin: string }) {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-3 border-t border-stone-100">
         <details className="flex-1 text-sm">
           <summary className="cursor-pointer font-medium text-stone-700 hover:text-emerald-800">
-            {registrations.length}{" "}
-            {registrations.length === 1 ? "person" : "people"} registered
+            {registrants.length}{" "}
+            {registrants.length === 1 ? "person" : "people"} registered
           </summary>
-          {registrations.length > 0 && (
+          {registrants.length > 0 && (
             <ul className="mt-2 flex flex-col gap-1 text-stone-600">
-              {registrations.map((r) => {
-                const registrant = getUserById(r.userId);
-                return (
-                  <li key={r.id} className="flex items-center gap-2">
-                    <span className="text-emerald-700">•</span>
-                    <span>{registrant?.email ?? "Unknown user"}</span>
-                    <span className="text-xs text-stone-400">
-                      signed up{" "}
-                      {new Date(r.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </li>
-                );
-              })}
+              {registrants.map((r) => (
+                <li key={r.registrationId} className="flex items-center gap-2">
+                  <span className="text-emerald-700">•</span>
+                  <span>{r.email}</span>
+                  <span className="text-xs text-stone-400">
+                    signed up{" "}
+                    {new Date(r.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </li>
+              ))}
             </ul>
           )}
         </details>
