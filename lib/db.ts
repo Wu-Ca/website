@@ -82,6 +82,60 @@ function check<T>(result: { data: T; error: { message: string } | null }): T {
   return result.data;
 }
 
+// --- Profiles ---
+
+export interface Profile {
+  id: string;
+  email: string;
+  displayName: string | null;
+}
+
+export async function getProfile(userId: string): Promise<Profile | undefined> {
+  const db = createServiceClient();
+  const data = check(
+    await db
+      .from("profiles")
+      .select("id, email, display_name")
+      .eq("id", userId)
+      .maybeSingle()
+  );
+  return data
+    ? { id: data.id, email: data.email, displayName: data.display_name }
+    : undefined;
+}
+
+/**
+ * Guarantees a profiles row exists for a signed-in user. Normally the
+ * on_auth_user_created trigger handles this; this covers users created
+ * before the trigger existed.
+ */
+export async function ensureProfile(
+  userId: string,
+  email: string
+): Promise<Profile> {
+  const existing = await getProfile(userId);
+  if (existing) return existing;
+  const db = createServiceClient();
+  const { error } = await db.from("profiles").insert({ id: userId, email });
+  if (error && error.code !== "23505") {
+    throw new Error(`Database error: ${error.message}`);
+  }
+  return { id: userId, email, displayName: null };
+}
+
+export async function updateProfileDisplayName(
+  userId: string,
+  displayName: string | null
+): Promise<void> {
+  const db = createServiceClient();
+  check(
+    await db
+      .from("profiles")
+      .update({ display_name: displayName })
+      .eq("id", userId)
+  );
+}
+
 // --- Organizations ---
 
 export async function getOrganizationById(
@@ -250,6 +304,7 @@ export async function listUserRegistrations(
 export interface Registrant {
   registrationId: string;
   email: string;
+  displayName: string | null;
   createdAt: string;
 }
 
@@ -260,7 +315,7 @@ export async function listEventRegistrants(
   const data = check(
     await db
       .from("registrations")
-      .select("id, created_at, profiles(email)")
+      .select("id, created_at, profiles(email, display_name)")
       .eq("event_id", eventId)
       .is("canceled_at", null)
       .order("created_at", { ascending: true })
@@ -269,11 +324,12 @@ export async function listEventRegistrants(
     data as unknown as {
       id: string;
       created_at: string;
-      profiles: { email: string } | null;
+      profiles: { email: string; display_name: string | null } | null;
     }[]
   ).map((row) => ({
     registrationId: row.id,
     email: row.profiles?.email ?? "Unknown user",
+    displayName: row.profiles?.display_name ?? null,
     createdAt: row.created_at,
   }));
 }

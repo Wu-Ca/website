@@ -31,6 +31,12 @@ export default async function Header() {
               >
                 Organization
               </Link>
+              <Link
+                href="/profile"
+                className="text-sm font-medium text-stone-600 hover:text-emerald-800"
+              >
+                {user.displayName ?? "Profile"}
+              </Link>
               <form action={logout}>
                 <button
                   type="submit"

@@ -11,6 +11,8 @@ import { cancelOrgEvent, restoreOrgEvent } from "@/app/actions/org";
 import Header from "@/app/_components/Header";
 import CreateOrgForm from "./CreateOrgForm";
 import ShareButtons from "./_components/ShareButtons";
+import CrossPostButtons from "./_components/CrossPostButtons";
+import { eventLocation } from "@/lib/calendar";
 import type { Event } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -168,7 +170,9 @@ async function OrgEventRow({ event, origin }: { event: Event; origin: string }) 
               {registrants.map((r) => (
                 <li key={r.registrationId} className="flex items-center gap-2">
                   <span className="text-emerald-700">•</span>
-                  <span>{r.email}</span>
+                  <span>
+                    {r.displayName ? `${r.displayName} — ${r.email}` : r.email}
+                  </span>
                   <span className="text-xs text-stone-400">
                     signed up{" "}
                     {new Date(r.createdAt).toLocaleDateString("en-US", {
@@ -181,7 +185,18 @@ async function OrgEventRow({ event, origin }: { event: Event; origin: string }) 
             </ul>
           )}
         </details>
-        <ShareButtons url={eventUrl} title={event.title} />
+        <div className="flex flex-col gap-2 sm:items-end">
+          <ShareButtons url={eventUrl} title={event.title} />
+          {!event.isCanceled && (
+            <CrossPostButtons
+              title={event.title}
+              description={event.description}
+              dateLabel={`${formatFullDate(event.date)}, ${formatTime(event.startTime)}–${formatTime(event.endTime)}`}
+              location={eventLocation(event)}
+              eventUrl={eventUrl}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

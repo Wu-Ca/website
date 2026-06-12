@@ -14,7 +14,7 @@ backed by [Supabase](https://supabase.com). One-time setup:
    SUPABASE_SERVICE_ROLE_KEY=...   # server-only, never exposed to the browser
    ```
 
-2. **Schema** — run `supabase/migrations/20260612000000_init.sql` in the
+2. **Schema** — run the files in `supabase/migrations/` in order in the
    Supabase SQL editor (or `supabase db push` if you use the CLI).
 
 3. **Auth config** — in the Supabase dashboard under Authentication → URL
@@ -22,11 +22,16 @@ backed by [Supabase](https://supabase.com). One-time setup:
    Vercel preview URLs and `http://localhost:3000`) to the redirect allowlist
    so magic links can return to `/auth/callback`.
 
-   Optional but recommended: change the Magic Link email template to link to
-   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email` so
-   sign-in links work even when opened in a different browser than the one
-   that requested them (the default `{{ .ConfirmationURL }}` PKCE flow also
-   works and is supported by the callback route).
+   **Strongly recommended:** change the Magic Link email template
+   (Authentication → Email Templates → Magic Link) to link to
+   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email`.
+   The default `{{ .ConfirmationURL }}` uses a PKCE flow that only completes
+   in the same browser that requested the link — opening it from a mail
+   app's in-app browser or another device silently fails and the user stays
+   signed out. The `token_hash` flow works everywhere and is supported by
+   the callback route. If a magic link redirect ever falls back to the Site
+   URL with the session in the URL fragment (`#access_token=...`), the
+   client-side `AuthSessionRescue` component recovers it automatically.
 
 ## Getting Started
 

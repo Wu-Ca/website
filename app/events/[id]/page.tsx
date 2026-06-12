@@ -7,7 +7,7 @@ import {
   getActiveRegistration,
   getOrganizationById,
 } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getOrigin } from "@/lib/auth";
 import { getCategoryMeta } from "@/lib/categories";
 import { formatFullDate, formatTime, SOURCE_LABELS } from "@/lib/utils";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/app/actions/registrations";
 import Header from "@/app/_components/Header";
 import EventCard from "@/app/_components/EventCard";
+import AddToCalendar from "@/app/_components/AddToCalendar";
 import InterestedButton from "./InterestedButton";
 import type { Event, Registration, User } from "@/lib/types";
 
@@ -43,6 +44,7 @@ export default async function EventPage({ params }: Props) {
     ? await getActiveRegistration(user.id, event.id)
     : undefined;
   const registeredCount = await countEventRegistrations(event.id);
+  const eventUrl = `${await getOrigin()}/events/${event.id}`;
   const hostOrg = event.organizationId
     ? await getOrganizationById(event.organizationId)
     : undefined;
@@ -191,6 +193,7 @@ export default async function EventPage({ params }: Props) {
                   user={user}
                   registration={registration}
                   registeredCount={registeredCount}
+                  eventUrl={eventUrl}
                 />
                 <InterestedButton
                   eventId={event.id}
@@ -224,11 +227,13 @@ function RegistrationSection({
   user,
   registration,
   registeredCount,
+  eventUrl,
 }: {
   event: Event;
   user: User | null;
   registration: Registration | undefined;
   registeredCount: number;
+  eventUrl: string;
 }) {
   if (event.isCanceled) {
     return (
@@ -240,10 +245,11 @@ function RegistrationSection({
 
   if (registration) {
     return (
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-3">
         <div className="rounded-full bg-emerald-800 text-white font-semibold text-sm px-8 py-3">
           ✓ You&apos;re registered
         </div>
+        <AddToCalendar event={event} eventUrl={eventUrl} />
         <form action={cancelRegistration}>
           <input type="hidden" name="registrationId" value={registration.id} />
           <input type="hidden" name="eventId" value={event.id} />
