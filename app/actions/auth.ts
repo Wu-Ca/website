@@ -26,11 +26,15 @@ export async function requestMagicLink(
   }
 
   const origin = await getOrigin();
-  const supabase = await createAuthClient();
+  // Implicit flow: the magic link returns the session in the URL fragment,
+  // picked up client-side by AuthSessionRescue. No PKCE verifier cookie
+  // needed, so the link works from any browser or device. Redirect to
+  // /login, which forwards signed-in users to their destination.
+  const supabase = await createAuthClient({ flowType: "implicit" });
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/auth/callback${
+      emailRedirectTo: `${origin}/login${
         next ? `?next=${encodeURIComponent(next)}` : ""
       }`,
     },

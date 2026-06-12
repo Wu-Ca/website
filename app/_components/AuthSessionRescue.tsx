@@ -1,28 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
 /**
- * Recovers magic-link sign-ins that land with the session in the URL
- * fragment (`#access_token=...`). That happens when Supabase falls back to
- * the implicit flow — e.g. the redirect URL wasn't in the allowlist and the
- * user was sent to the Site URL instead. Servers never see URL fragments,
- * so without this the user looks signed out despite a successful sign-in.
+ * Completes magic-link sign-ins that arrive with the session in the URL
+ * fragment (`#access_token=...`) — the implicit flow used by our sign-in
+ * emails. Fragments are only visible to the browser, so this runs on every
+ * page: it persists the session into cookies, then refreshes so the server
+ * sees the signed-in user. Also surfaces fragment-style auth errors
+ * (expired/used links) on the login page.
  *
- * The browser client (cookie-based via @supabase/ssr) detects the fragment,
- * persists the session into cookies, and we refresh so the server picks
- * it up. Renders nothing and does nothing when no fragment is present.
+ * Renders nothing unless a sign-in is actually being completed.
  */
 export default function AuthSessionRescue() {
   const router = useRouter();
+  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
     const hash = window.location.hash;
 
-    // Supabase also reports failures (expired/used links) in the fragment
-    // when redirecting to the Site URL — surface them on the login page.
     if (hash.includes("error=")) {
       const params = new URLSearchParams(hash.slice(1));
       const code = params.get("error_code") ?? params.get("error") ?? "invalid-link";
@@ -31,6 +29,7 @@ export default function AuthSessionRescue() {
     }
 
     if (!hash.includes("access_token")) return;
+    setCompleting(true);
 
     const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,5 +52,14 @@ export default function AuthSessionRescue() {
     return () => subscription.unsubscribe();
   }, [router]);
 
-  return null;
+  if (!completing) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-50/90 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-3 bg-white rounded-2xl border border-stone-200 px-10 py-8">
+        <span className="animate-spin text-2xl text-emerald-700">⟳</span>
+        <p className="text-sm font-medium text-stone-700">Completing sign-in…</p>
+      </div>
+    </div>
+  );
 }
