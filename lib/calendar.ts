@@ -58,22 +58,15 @@ function foldIcsLine(line: string): string {
   return chunks.join("\r\n");
 }
 
-/** iCalendar file content — works with Apple/iCloud Calendar, Google, Outlook. */
-export function eventToIcs(event: Event, eventUrl: string): string {
-  const now = new Date()
-    .toISOString()
-    .replace(/[-:]/g, "")
-    .replace(/\.\d{3}/, "");
-
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//CommonGround NYC//Events//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+function eventToVEventLines(
+  event: Event,
+  eventUrl: string,
+  dtStamp: string
+): string[] {
+  return [
     "BEGIN:VEVENT",
     `UID:${event.id}@commonground.nyc`,
-    `DTSTAMP:${now}`,
+    `DTSTAMP:${dtStamp}`,
     `DTSTART;TZID=${TZID}:${compactDateTime(event.date, event.startTime)}`,
     `DTEND;TZID=${TZID}:${compactDateTime(event.date, event.endTime)}`,
     `SUMMARY:${escapeIcsText(event.title)}`,
@@ -82,8 +75,54 @@ export function eventToIcs(event: Event, eventUrl: string): string {
     `URL:${eventUrl}`,
     `STATUS:${event.isCanceled ? "CANCELLED" : "CONFIRMED"}`,
     "END:VEVENT",
+  ];
+}
+
+function icsDtStamp(): string {
+  return new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}/, "");
+}
+
+/** iCalendar file content — works with Apple/iCloud Calendar, Google, Outlook. */
+export function eventToIcs(event: Event, eventUrl: string): string {
+  return eventsToIcsFeed("CommonGround NYC", [event], () => eventUrl);
+}
+
+/**
+ * Multi-event iCalendar feed for live calendar subscriptions. Calendar apps
+ * poll the feed URL, so newly registered events show up automatically.
+ */
+export function eventsToIcsFeed(
+  calendarName: string,
+  events: Event[],
+  eventUrl: (event: Event) => string
+): string {
+  const dtStamp = icsDtStamp();
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//CommonGround NYC//Events//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    `X-WR-CALNAME:${escapeIcsText(calendarName)}`,
+    `X-WR-TIMEZONE:${TZID}`,
+    ...events.flatMap((event) =>
+      eventToVEventLines(event, eventUrl(event), dtStamp)
+    ),
     "END:VCALENDAR",
   ];
-
   return lines.map(foldIcsLine).join("\r\n") + "\r\n";
+}
+
+/** Subscription links for the major calendar apps, given an ICS feed URL. */
+export function calendarSubscribeLinks(feedUrl: string, name: string) {
+  const webcal = feedUrl.replace(/^https?:\/\//, "webcal://");
+  return {
+    feedUrl,
+    webcal,
+    google: `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`,
+    outlook: `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(feedUrl)}&name=${encodeURIComponent(name)}`,
+  };
 }

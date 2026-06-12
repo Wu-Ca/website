@@ -60,6 +60,11 @@ export interface Organization {
   id: string;
   name: string;
   description: string;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  calendarToken: string;
   ownerUserId: string;
   createdAt: string;
 }

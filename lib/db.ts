@@ -88,6 +88,35 @@ export interface Profile {
   id: string;
   email: string;
   displayName: string | null;
+  phone: string | null;
+  borough: string | null;
+  bio: string | null;
+  calendarToken: string | null;
+}
+
+interface ProfileRow {
+  id: string;
+  email: string;
+  display_name: string | null;
+  phone: string | null;
+  borough: string | null;
+  bio: string | null;
+  calendar_token: string | null;
+}
+
+const PROFILE_COLUMNS =
+  "id, email, display_name, phone, borough, bio, calendar_token";
+
+function mapProfile(row: ProfileRow): Profile {
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    phone: row.phone,
+    borough: row.borough,
+    bio: row.bio,
+    calendarToken: row.calendar_token,
+  };
 }
 
 export async function getProfile(userId: string): Promise<Profile | undefined> {
@@ -95,13 +124,25 @@ export async function getProfile(userId: string): Promise<Profile | undefined> {
   const data = check(
     await db
       .from("profiles")
-      .select("id, email, display_name")
+      .select(PROFILE_COLUMNS)
       .eq("id", userId)
       .maybeSingle()
   );
-  return data
-    ? { id: data.id, email: data.email, displayName: data.display_name }
-    : undefined;
+  return data ? mapProfile(data as ProfileRow) : undefined;
+}
+
+export async function getProfileByCalendarToken(
+  token: string
+): Promise<Profile | undefined> {
+  const db = createServiceClient();
+  const data = check(
+    await db
+      .from("profiles")
+      .select(PROFILE_COLUMNS)
+      .eq("calendar_token", token)
+      .maybeSingle()
+  );
+  return data ? mapProfile(data as ProfileRow) : undefined;
 }
 
 /**
@@ -120,18 +161,28 @@ export async function ensureProfile(
   if (error && error.code !== "23505") {
     throw new Error(`Database error: ${error.message}`);
   }
-  return { id: userId, email, displayName: null };
+  return (await getProfile(userId))!;
 }
 
-export async function updateProfileDisplayName(
+export async function updateProfileDetails(
   userId: string,
-  displayName: string | null
+  details: {
+    displayName: string | null;
+    phone: string | null;
+    borough: string | null;
+    bio: string | null;
+  }
 ): Promise<void> {
   const db = createServiceClient();
   check(
     await db
       .from("profiles")
-      .update({ display_name: displayName })
+      .update({
+        display_name: details.displayName,
+        phone: details.phone,
+        borough: details.borough,
+        bio: details.bio,
+      })
       .eq("id", userId)
   );
 }
@@ -166,6 +217,11 @@ interface OrganizationRow {
   id: string;
   name: string;
   description: string;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  calendar_token: string;
   owner_user_id: string;
   created_at: string;
 }
@@ -175,14 +231,37 @@ function mapOrganization(row: OrganizationRow): Organization {
     id: row.id,
     name: row.name,
     description: row.description,
+    website: row.website,
+    phone: row.phone,
+    email: row.email,
+    address: row.address,
+    calendarToken: row.calendar_token,
     ownerUserId: row.owner_user_id,
     createdAt: row.created_at,
   };
 }
 
+export async function getOrganizationByCalendarToken(
+  token: string
+): Promise<Organization | undefined> {
+  const db = createServiceClient();
+  const data = check(
+    await db
+      .from("organizations")
+      .select("*")
+      .eq("calendar_token", token)
+      .maybeSingle()
+  );
+  return data ? mapOrganization(data) : undefined;
+}
+
 export async function createOrganization(input: {
   name: string;
   description: string;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
   ownerUserId: string;
 }): Promise<Organization> {
   const db = createServiceClient();
@@ -192,6 +271,10 @@ export async function createOrganization(input: {
       .insert({
         name: input.name,
         description: input.description,
+        website: input.website,
+        phone: input.phone,
+        email: input.email,
+        address: input.address,
         owner_user_id: input.ownerUserId,
       })
       .select("*")

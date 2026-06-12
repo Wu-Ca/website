@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getOrigin, requireUser } from "@/lib/auth";
 import { getUserRegistrationsWithEvents } from "@/lib/events";
-import { getOrganizationByOwner, listOrgEvents } from "@/lib/db";
+import { getOrganizationByOwner, getProfile, listOrgEvents } from "@/lib/db";
 import { cancelRegistration } from "@/app/actions/registrations";
+import { calendarSubscribeLinks } from "@/lib/calendar";
 import { formatFullDate, formatTime } from "@/lib/utils";
 import { getCategoryMeta } from "@/lib/categories";
 import Header from "@/app/_components/Header";
 import AddToCalendar from "@/app/_components/AddToCalendar";
+import RegistrationsCalendar from "@/app/_components/RegistrationsCalendar";
+import CalendarSyncCard from "@/app/_components/CalendarSyncCard";
 import type { RegistrationWithEvent } from "@/lib/events";
 import type { Event } from "@/lib/types";
 
@@ -21,10 +24,27 @@ export default async function DashboardPage() {
   const registrations = await getUserRegistrationsWithEvents(user.id);
   const org = await getOrganizationByOwner(user.id);
   const hostedEvents = org ? await listOrgEvents(org.id) : [];
+  const profile = await getProfile(user.id);
 
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = registrations.filter(({ event }) => event.date >= today);
   const past = registrations.filter(({ event }) => event.date < today);
+
+  const calendarEvents = registrations
+    .filter(({ event }) => !event.isCanceled)
+    .map(({ event }) => ({
+      id: event.id,
+      title: event.title,
+      date: event.date,
+      startTime: event.startTime,
+    }));
+
+  const feedLinks = profile?.calendarToken
+    ? calendarSubscribeLinks(
+        `${origin}/calendar/me/${profile.calendarToken}`,
+        "My CommonGround NYC events"
+      )
+    : null;
 
   return (
     <>
@@ -50,6 +70,10 @@ export default async function DashboardPage() {
         </div>
 
         <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-10">
+          <section>
+            <RegistrationsCalendar events={calendarEvents} />
+          </section>
+
           <section>
             <h2 className="text-base font-semibold text-stone-700 mb-4">
               Upcoming registrations
@@ -117,6 +141,19 @@ export default async function DashboardPage() {
                   />
                 ))}
               </div>
+            </section>
+          )}
+
+          {feedLinks && (
+            <section>
+              <CalendarSyncCard
+                heading="Sync with your calendar"
+                description="Subscribe once and every event you register for shows up in Google, Apple, or Outlook calendar automatically."
+                feedUrl={feedLinks.feedUrl}
+                webcalUrl={feedLinks.webcal}
+                googleUrl={feedLinks.google}
+                outlookUrl={feedLinks.outlook}
+              />
             </section>
           )}
 
