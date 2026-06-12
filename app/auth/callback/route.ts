@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { createAuthClient } from "@/lib/supabase/server";
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/server";
 import { sanitizeNextPath } from "@/lib/auth";
 
 // Completes magic-link sign-in. Handles both Supabase redirect styles:
-// `?code=` (PKCE, default email template) and `?token_hash=&type=` (custom
-// email template, works across browsers/devices).
+// `?token_hash=&type=` (custom email template, works across browsers) and
+// `?code=` (PKCE, default email template, same-browser only).
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
@@ -13,25 +14,44 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = sanitizeNextPath(searchParams.get("next")) ?? "/dashboard";
 
-  const supabase = await createAuthClient();
+  // The session cookies written during verification must ride on the exact
+  // response we return, so bind the client's cookie writes to it directly
+  // rather than relying on the framework to merge cookie-store mutations
+  // into a manually constructed redirect.
+  const response = NextResponse.redirect(new URL(next, request.nextUrl));
+  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
 
-  let failed = true;
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    failed = !!error;
-  } else if (tokenHash && type) {
+  let reason: string | null = null;
+  if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({
       type,
       token_hash: tokenHash,
     });
-    failed = !!error;
+    if (error) reason = error.code ?? `verify_failed_${error.status ?? "unknown"}`;
+  } else if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) reason = error.code ?? `exchange_failed_${error.status ?? "unknown"}`;
+  } else {
+    reason = "missing_token";
   }
 
-  if (failed) {
-    const loginUrl = new URL("/login?error=invalid-link", request.nextUrl);
+  if (reason) {
+    const loginUrl = new URL("/login", request.nextUrl);
+    loginUrl.searchParams.set("error", reason);
     if (next !== "/dashboard") loginUrl.searchParams.set("next", next);
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.redirect(new URL(next, request.nextUrl));
+  return response;
 }

@@ -9,9 +9,27 @@ export const metadata: Metadata = {
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
+  otp_expired:
+    "That sign-in link has expired or was already used — request a fresh one below.",
+  missing_token:
+    "That sign-in link was incomplete. Try copying the full link from the email, or request a fresh one below.",
+  flow_state_not_found:
+    "Sign-in links must be opened in the same browser that requested them. Request a fresh link from this browser, or open the original link where you first entered your email.",
+  flow_state_expired:
+    "That sign-in attempt expired — request a fresh link below.",
+  bad_code_verifier:
+    "Sign-in links must be opened in the same browser that requested them. Request a fresh link from this browser.",
   "invalid-link":
-    "That sign-in link couldn't be verified. Links expire after a short time and must be opened in the same browser that requested them — request a fresh one below.",
+    "That sign-in link couldn't be verified — request a fresh one below.",
 };
+
+function errorMessage(code: string | undefined): string | undefined {
+  if (!code) return undefined;
+  return (
+    ERROR_MESSAGES[code] ??
+    `Sign-in failed (reason: ${code}). Request a fresh link below — if this keeps happening, send us that reason code.`
+  );
+}
 
 export default async function LoginPage({
   searchParams,
@@ -35,10 +53,7 @@ export default async function LoginPage({
               Enter your email and we&apos;ll send you a magic link — no
               password needed.
             </p>
-            <LoginForm
-              next={nextPath}
-              initialError={error ? ERROR_MESSAGES[error] : undefined}
-            />
+            <LoginForm next={nextPath} initialError={errorMessage(error)} />
           </div>
           <p className="mt-4 text-xs text-stone-400 text-center">
             Signing in lets you register for events and, if you run an
