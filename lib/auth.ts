@@ -28,7 +28,7 @@ export async function requireUser(nextPath: string): Promise<User> {
   return user;
 }
 
-/** Absolute origin of the running site, for magic links and share URLs. */
+/** Absolute origin of the running site, for share and calendar URLs. */
 export async function getOrigin(): Promise<string> {
   if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
   const h = await headers();
