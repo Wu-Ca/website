@@ -70,4 +70,23 @@ export const SOURCE_LABELS: Record<string, string> = {
   NYPL: "NY Public Library",
   BPL: "Brooklyn Public Library",
   QPL: "Queens Public Library",
+  COMMUNITY: "Community",
+};
+
+export const SOURCE_BADGE_LABELS: Record<string, string> = {
+  NYPL: "NYPL",
+  BPL: "BPL",
+  QPL: "QPL",
+  COMMUNITY: "Community",
+};
+
+export const BOROUGH_CENTERS: Record<
+  (typeof BOROUGHS)[number],
+  { lat: number; lng: number }
+> = {
+  Manhattan: { lat: 40.7831, lng: -73.9712 },
+  Brooklyn: { lat: 40.6782, lng: -73.9442 },
+  Queens: { lat: 40.7282, lng: -73.7949 },
+  Bronx: { lat: 40.8448, lng: -73.8648 },
+  "Staten Island": { lat: 40.5795, lng: -74.1502 },
 };

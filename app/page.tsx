@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { EVENTS } from "@/lib/mock-data";
+import { getAllEvents } from "@/lib/events";
 import Header from "./_components/Header";
 import EventsView from "./_components/EventsView";
 
@@ -26,7 +26,7 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-        <EventsView events={EVENTS} />
+        <EventsView events={getAllEvents()} />
       </main>
     </>
   );

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import type { Event, Category, Borough } from "@/lib/types";
 import { CATEGORIES } from "@/lib/categories";
-import { haversineDistance, BOROUGHS } from "@/lib/utils";
+import { haversineDistance, BOROUGHS, BOROUGH_CENTERS } from "@/lib/utils";
 import EventCard from "./EventCard";
 
 interface Props {
@@ -11,14 +11,6 @@ interface Props {
 }
 
 type LocationStatus = "idle" | "requesting" | "granted" | "denied";
-
-const BOROUGH_CENTERS: Record<Borough, { lat: number; lng: number }> = {
-  Manhattan: { lat: 40.7831, lng: -73.9712 },
-  Brooklyn: { lat: 40.6782, lng: -73.9442 },
-  Queens: { lat: 40.7282, lng: -73.7949 },
-  Bronx: { lat: 40.8448, lng: -73.8648 },
-  "Staten Island": { lat: 40.5795, lng: -74.1502 },
-};
 
 export default function EventsView({ events }: Props) {
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
