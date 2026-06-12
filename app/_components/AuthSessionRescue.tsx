@@ -19,7 +19,18 @@ export default function AuthSessionRescue() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!window.location.hash.includes("access_token")) return;
+    const hash = window.location.hash;
+
+    // Supabase also reports failures (expired/used links) in the fragment
+    // when redirecting to the Site URL — surface them on the login page.
+    if (hash.includes("error=")) {
+      const params = new URLSearchParams(hash.slice(1));
+      const code = params.get("error_code") ?? params.get("error") ?? "invalid-link";
+      router.replace(`/login?error=${encodeURIComponent(code)}`);
+      return;
+    }
+
+    if (!hash.includes("access_token")) return;
 
     const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
