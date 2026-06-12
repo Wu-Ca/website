@@ -20,10 +20,18 @@ export function getSupabaseAnonKey(): string {
 /**
  * Cookie-bound client for auth (sign in, get current user). Use from
  * Server Components, Server Actions, and Route Handlers.
+ *
+ * `flowType: "implicit"` makes magic links carry the session in the URL
+ * fragment, completed client-side by AuthSessionRescue. Unlike the default
+ * PKCE flow it requires no verifier cookie, so links work from any browser,
+ * device, or domain alias.
  */
-export async function createAuthClient(): Promise<SupabaseClient> {
+export async function createAuthClient(options?: {
+  flowType?: "pkce" | "implicit";
+}): Promise<SupabaseClient> {
   const cookieStore = await cookies();
   return createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    auth: options?.flowType ? { flowType: options.flowType } : undefined,
     cookies: {
       getAll() {
         return cookieStore.getAll();
