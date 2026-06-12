@@ -63,7 +63,7 @@ export default async function EventPage({ params }: Props) {
     <>
       <Header />
       <main className="flex-1 bg-stone-50">
-        <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="max-w-5xl mx-auto px-4 py-6">
           <Link
             href="/"
             className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 mb-5"
@@ -84,124 +84,160 @@ export default async function EventPage({ params }: Props) {
             </div>
           )}
 
-          <article className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-            <div className="bg-emerald-900 px-6 py-8 text-white">
-              <div className="flex flex-wrap gap-2 mb-3">
-                <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full bg-white/10 text-white`}
-                >
-                  {categoryMeta?.label ?? event.category}
-                </span>
-                <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                    SOURCE_BADGE[event.source] ?? "bg-white/10 text-white"
-                  }`}
-                >
-                  {hostOrg?.name ?? SOURCE_LABELS[event.source] ?? event.source}
-                </span>
-              </div>
-              <h1 className="text-2xl font-bold leading-tight">{event.title}</h1>
-              {hostOrg && (
-                <p className="mt-2 text-sm text-emerald-200">
-                  Hosted by {hostOrg.name}
-                </p>
-              )}
-            </div>
-
-            <div className="px-6 py-6 flex flex-col gap-6">
-              {/* Key details */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Detail
-                  icon="📅"
-                  label="Date"
-                  value={formatFullDate(event.date)}
-                />
-                <Detail
-                  icon="🕐"
-                  label="Time"
-                  value={`${formatTime(event.startTime)} – ${formatTime(event.endTime)}`}
-                />
-                <Detail
-                  icon="📍"
-                  label="Location"
-                  value={`${event.venue.name}, ${event.venue.address}, ${event.venue.borough}, NY ${event.venue.zip}`}
-                />
-                <Detail
-                  icon="💰"
-                  label="Cost"
-                  value={event.cost === "Free" ? "Free" : `$${event.cost}`}
-                  highlight={event.cost === "Free"}
-                />
+          <div className="grid gap-6 lg:grid-cols-3 items-start">
+            <article className="lg:col-span-2 bg-white rounded-2xl border border-stone-200 overflow-hidden">
+              <div className="bg-emerald-900 px-6 py-8 text-white">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full bg-white/10 text-white`}
+                  >
+                    {categoryMeta?.label ?? event.category}
+                  </span>
+                  <span
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                      SOURCE_BADGE[event.source] ?? "bg-white/10 text-white"
+                    }`}
+                  >
+                    {hostOrg?.name ?? SOURCE_LABELS[event.source] ?? event.source}
+                  </span>
+                </div>
+                <h1 className="text-2xl font-bold leading-tight">{event.title}</h1>
+                {hostOrg && (
+                  <p className="mt-2 text-sm text-emerald-200">
+                    Hosted by {hostOrg.name}
+                  </p>
+                )}
               </div>
 
-              <hr className="border-stone-100" />
+              <div className="px-6 py-6 flex flex-col gap-6">
+                {/* Key details */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Detail
+                    icon="📅"
+                    label="Date"
+                    value={formatFullDate(event.date)}
+                  />
+                  <Detail
+                    icon="🕐"
+                    label="Time"
+                    value={`${formatTime(event.startTime)} – ${formatTime(event.endTime)}`}
+                  />
+                  <Detail
+                    icon="📍"
+                    label="Location"
+                    value={`${event.venue.name}, ${event.venue.address}, ${event.venue.borough}, NY ${event.venue.zip}`}
+                  />
+                  <Detail
+                    icon="💰"
+                    label="Cost"
+                    value={event.cost === "Free" ? "Free" : `$${event.cost}`}
+                    highlight={event.cost === "Free"}
+                  />
+                </div>
 
-              {/* Description */}
-              <div>
-                <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-2">
-                  About this event
-                </h2>
-                <p className="text-stone-700 leading-relaxed">{event.description}</p>
-              </div>
+                <hr className="border-stone-100" />
 
-              {/* Contact / Registration */}
-              {(event.registrationUrl || event.contactEmail || event.contactPhone) && (
-                <>
-                  <hr className="border-stone-100" />
-                  <div>
-                    <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">
-                      Contact &amp; Registration
-                    </h2>
-                    <div className="flex flex-col gap-2">
-                      {event.registrationUrl && (
-                        <a
-                          href={event.registrationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:text-emerald-900"
-                        >
-                          Register on {SOURCE_LABELS[event.source] ?? event.source} website →
-                        </a>
-                      )}
-                      {event.contactEmail && (
-                        <a
-                          href={`mailto:${event.contactEmail}`}
-                          className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900"
-                        >
-                          ✉ {event.contactEmail}
-                        </a>
-                      )}
-                      {event.contactPhone && (
-                        <a
-                          href={`tel:${event.contactPhone}`}
-                          className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900"
-                        >
-                          ☎ {event.contactPhone}
-                        </a>
-                      )}
+                {/* Description */}
+                <div>
+                  <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-2">
+                    About this event
+                  </h2>
+                  <p className="text-stone-700 leading-relaxed">{event.description}</p>
+                </div>
+
+                {/* Contact / Registration */}
+                {(event.registrationUrl || event.contactEmail || event.contactPhone) && (
+                  <>
+                    <hr className="border-stone-100" />
+                    <div>
+                      <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">
+                        Contact &amp; Registration
+                      </h2>
+                      <div className="flex flex-col gap-2">
+                        {event.registrationUrl && (
+                          <a
+                            href={event.registrationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:text-emerald-900"
+                          >
+                            Register on {SOURCE_LABELS[event.source] ?? event.source} website →
+                          </a>
+                        )}
+                        {event.contactEmail && (
+                          <a
+                            href={`mailto:${event.contactEmail}`}
+                            className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900"
+                          >
+                            ✉ {event.contactEmail}
+                          </a>
+                        )}
+                        {event.contactPhone && (
+                          <a
+                            href={`tel:${event.contactPhone}`}
+                            className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900"
+                          >
+                            ☎ {event.contactPhone}
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
+            </article>
 
-              <hr className="border-stone-100" />
+            {/* Checkout column */}
+            <aside className="lg:col-span-1 lg:sticky lg:top-20">
+              <div className="bg-white rounded-2xl border border-stone-200 p-5 flex flex-col gap-4">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-xs font-semibold text-stone-400 uppercase tracking-wide">
+                    Price
+                  </span>
+                  <span
+                    className={`text-xl font-bold ${
+                      event.cost === "Free" ? "text-emerald-700" : "text-stone-900"
+                    }`}
+                  >
+                    {event.cost === "Free" ? "Free" : `$${event.cost}`}
+                  </span>
+                </div>
 
-              {/* Register / Interested */}
-              <div className="flex flex-col items-center gap-5">
+                <div className="text-sm text-stone-600 flex flex-col gap-1">
+                  <p>📅 {formatFullDate(event.date)}</p>
+                  <p>
+                    🕐 {formatTime(event.startTime)} – {formatTime(event.endTime)}
+                  </p>
+                  <p>
+                    📍 {event.venue.name}, {event.venue.borough}
+                  </p>
+                </div>
+
+                <hr className="border-stone-100" />
+
                 <RegistrationSection
                   event={event}
                   user={user}
                   registration={registration}
-                  registeredCount={registeredCount}
                   eventUrl={eventUrl}
                 />
-                <InterestedButton
-                  eventId={event.id}
-                  initialCount={event.interestedCount}
-                />
+
+                <p className="text-xs text-stone-400 text-center">
+                  {registeredCount} {registeredCount === 1 ? "person" : "people"}{" "}
+                  registered
+                </p>
+
+                <hr className="border-stone-100" />
+
+                <div className="flex justify-center">
+                  <InterestedButton
+                    eventId={event.id}
+                    initialCount={event.interestedCount}
+                  />
+                </div>
               </div>
-            </div>
-          </article>
+            </aside>
+          </div>
 
           {/* Related events */}
           {related.length > 0 && (
@@ -226,18 +262,16 @@ function RegistrationSection({
   event,
   user,
   registration,
-  registeredCount,
   eventUrl,
 }: {
   event: Event;
   user: User | null;
   registration: Registration | undefined;
-  registeredCount: number;
   eventUrl: string;
 }) {
   if (event.isCanceled) {
     return (
-      <p className="text-sm text-stone-400">
+      <p className="text-sm text-stone-400 text-center">
         This event has been canceled — registration is closed.
       </p>
     );
@@ -246,7 +280,7 @@ function RegistrationSection({
   if (registration) {
     return (
       <div className="flex flex-col items-center gap-3">
-        <div className="rounded-full bg-emerald-800 text-white font-semibold text-sm px-8 py-3">
+        <div className="w-full text-center rounded-full bg-emerald-800 text-white font-semibold text-sm px-6 py-3">
           ✓ You&apos;re registered
         </div>
         <AddToCalendar event={event} eventUrl={eventUrl} />
@@ -260,47 +294,31 @@ function RegistrationSection({
             Cancel my registration
           </button>
         </form>
-        <p className="text-xs text-stone-400">
-          {registeredCount} {registeredCount === 1 ? "person" : "people"}{" "}
-          registered
-        </p>
       </div>
     );
   }
 
   if (user) {
     return (
-      <div className="flex flex-col items-center gap-2">
-        <form action={registerForEvent} className="w-full sm:w-auto">
-          <input type="hidden" name="eventId" value={event.id} />
-          <button
-            type="submit"
-            className="w-full sm:w-auto px-8 py-3 rounded-full font-semibold text-sm bg-emerald-800 text-white hover:bg-emerald-700 transition-colors"
-          >
-            Register for this event
-          </button>
-        </form>
-        <p className="text-xs text-stone-400">
-          {registeredCount} {registeredCount === 1 ? "person" : "people"}{" "}
-          registered
-        </p>
-      </div>
+      <form action={registerForEvent}>
+        <input type="hidden" name="eventId" value={event.id} />
+        <button
+          type="submit"
+          className="w-full px-6 py-3 rounded-full font-semibold text-sm bg-emerald-800 text-white hover:bg-emerald-700 transition-colors"
+        >
+          Register for this event
+        </button>
+      </form>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <Link
-        href={`/login?next=${encodeURIComponent(`/events/${event.id}`)}`}
-        className="w-full sm:w-auto text-center px-8 py-3 rounded-full font-semibold text-sm bg-emerald-800 text-white hover:bg-emerald-700 transition-colors"
-      >
-        Sign in to register
-      </Link>
-      <p className="text-xs text-stone-400">
-        {registeredCount} {registeredCount === 1 ? "person" : "people"}{" "}
-        registered
-      </p>
-    </div>
+    <Link
+      href={`/login?next=${encodeURIComponent(`/events/${event.id}`)}`}
+      className="block w-full text-center px-6 py-3 rounded-full font-semibold text-sm bg-emerald-800 text-white hover:bg-emerald-700 transition-colors"
+    >
+      Sign in to register
+    </Link>
   );
 }
 

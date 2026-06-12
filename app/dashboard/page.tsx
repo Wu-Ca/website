@@ -2,15 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getOrigin, requireUser } from "@/lib/auth";
 import { getUserRegistrationsWithEvents } from "@/lib/events";
-import { getOrganizationByOwner, getProfile, listOrgEvents } from "@/lib/db";
-import { cancelRegistration } from "@/app/actions/registrations";
-import { calendarSubscribeLinks } from "@/lib/calendar";
+import { getOrganizationByOwner, listOrgEvents } from "@/lib/db";
 import { formatFullDate, formatTime } from "@/lib/utils";
 import { getCategoryMeta } from "@/lib/categories";
 import Header from "@/app/_components/Header";
-import AddToCalendar from "@/app/_components/AddToCalendar";
-import RegistrationsCalendar from "@/app/_components/RegistrationsCalendar";
-import CalendarSyncCard from "@/app/_components/CalendarSyncCard";
+import UpcomingPanel from "./UpcomingPanel";
 import type { RegistrationWithEvent } from "@/lib/events";
 import type { Event } from "@/lib/types";
 
@@ -24,27 +20,14 @@ export default async function DashboardPage() {
   const registrations = await getUserRegistrationsWithEvents(user.id);
   const org = await getOrganizationByOwner(user.id);
   const hostedEvents = org ? await listOrgEvents(org.id) : [];
-  const profile = await getProfile(user.id);
 
   const today = new Date().toISOString().slice(0, 10);
-  const upcoming = registrations.filter(({ event }) => event.date >= today);
   const past = registrations.filter(({ event }) => event.date < today);
 
-  const calendarEvents = registrations
-    .filter(({ event }) => !event.isCanceled)
-    .map(({ event }) => ({
-      id: event.id,
-      title: event.title,
-      date: event.date,
-      startTime: event.startTime,
-    }));
-
-  const feedLinks = profile?.calendarToken
-    ? calendarSubscribeLinks(
-        `${origin}/calendar/me/${profile.calendarToken}`,
-        "My CommonGround NYC events"
-      )
-    : null;
+  const panelItems = registrations.map(({ registration, event }) => ({
+    registrationId: registration.id,
+    event,
+  }));
 
   return (
     <>
@@ -71,37 +54,7 @@ export default async function DashboardPage() {
 
         <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-10">
           <section>
-            <RegistrationsCalendar events={calendarEvents} />
-          </section>
-
-          <section>
-            <h2 className="text-base font-semibold text-stone-700 mb-4">
-              Upcoming registrations
-            </h2>
-            {upcoming.length === 0 ? (
-              <div className="bg-white rounded-xl border border-stone-200 p-6 text-center">
-                <p className="text-sm text-stone-500">
-                  You haven&apos;t registered for any upcoming events yet.
-                </p>
-                <Link
-                  href="/"
-                  className="mt-3 inline-block text-sm font-medium text-emerald-700 hover:text-emerald-900"
-                >
-                  Browse events →
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {upcoming.map((item) => (
-                  <RegistrationRow
-                    key={item.registration.id}
-                    item={item}
-                    origin={origin}
-                    canCancel
-                  />
-                ))}
-              </div>
-            )}
+            <UpcomingPanel items={panelItems} origin={origin} today={today} />
           </section>
 
           {hostedEvents.length > 0 && org && (
@@ -134,114 +87,47 @@ export default async function DashboardPage() {
               </h2>
               <div className="flex flex-col gap-3 opacity-70">
                 {past.map((item) => (
-                  <RegistrationRow
-                    key={item.registration.id}
-                    item={item}
-                    origin={origin}
-                  />
+                  <RegistrationRow key={item.registration.id} item={item} />
                 ))}
               </div>
             </section>
           )}
-
-          {feedLinks && (
-            <section>
-              <CalendarSyncCard
-                heading="Sync with your calendar"
-                description="Subscribe once and every event you register for shows up in Google, Apple, or Outlook calendar automatically."
-                feedUrl={feedLinks.feedUrl}
-                webcalUrl={feedLinks.webcal}
-                googleUrl={feedLinks.google}
-                outlookUrl={feedLinks.outlook}
-              />
-            </section>
-          )}
-
-          <section className="bg-white rounded-xl border border-stone-200 p-6">
-            <h2 className="text-base font-semibold text-stone-700">
-              {org ? org.name : "Run an organization?"}
-            </h2>
-            <p className="mt-1 text-sm text-stone-500">
-              {org
-                ? "Manage your organization's events, see who's registered, and share them."
-                : "Create an organization profile to publish your own events and track sign-ups."}
-            </p>
-            <Link
-              href="/org"
-              className="mt-3 inline-block text-sm font-medium text-emerald-700 hover:text-emerald-900"
-            >
-              {org ? "Go to organization dashboard →" : "Set up your organization →"}
-            </Link>
-          </section>
         </div>
       </main>
     </>
   );
 }
 
-function RegistrationRow({
-  item,
-  origin,
-  canCancel,
-}: {
-  item: RegistrationWithEvent;
-  origin: string;
-  canCancel?: boolean;
-}) {
-  const { registration, event } = item;
+function RegistrationRow({ item }: { item: RegistrationWithEvent }) {
+  const { event } = item;
   const categoryMeta = getCategoryMeta(event.category);
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4 flex flex-col gap-3">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/events/${event.id}`}
-              className="font-semibold text-stone-900 hover:text-emerald-800 leading-snug"
-            >
-              {event.title}
-            </Link>
-            {event.isCanceled && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
-                Event canceled
-              </span>
-            )}
-            <span
-              className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                categoryMeta?.color ?? "bg-stone-100 text-stone-600"
-              }`}
-            >
-              {categoryMeta?.label ?? event.category}
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-stone-500">
-            {formatFullDate(event.date)} · {formatTime(event.startTime)}–
-            {formatTime(event.endTime)} · {event.venue.name},{" "}
-            {event.venue.borough}
-          </p>
-        </div>
-        {canCancel && (
-          <form action={cancelRegistration} className="shrink-0">
-            <input type="hidden" name="registrationId" value={registration.id} />
-            <input type="hidden" name="eventId" value={event.id} />
-            <button
-              type="submit"
-              className="text-xs font-medium px-3 py-1.5 rounded-full border border-stone-300 text-stone-600 hover:border-red-300 hover:text-red-700 transition-colors"
-            >
-              Cancel registration
-            </button>
-          </form>
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href={`/events/${event.id}`}
+          className="font-semibold text-stone-900 hover:text-emerald-800 leading-snug"
+        >
+          {event.title}
+        </Link>
+        {event.isCanceled && (
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+            Event canceled
+          </span>
         )}
+        <span
+          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+            categoryMeta?.color ?? "bg-stone-100 text-stone-600"
+          }`}
+        >
+          {categoryMeta?.label ?? event.category}
+        </span>
       </div>
-      {canCancel && !event.isCanceled && (
-        <div className="pt-3 border-t border-stone-100">
-          <AddToCalendar
-            event={event}
-            eventUrl={`${origin}/events/${event.id}`}
-          />
-        </div>
-      )}
+      <p className="mt-1 text-sm text-stone-500">
+        {formatFullDate(event.date)} · {formatTime(event.startTime)}–
+        {formatTime(event.endTime)} · {event.venue.name}, {event.venue.borough}
+      </p>
     </div>
   );
 }
