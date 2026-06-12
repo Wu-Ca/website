@@ -20,6 +20,7 @@ export default function EventsView({ events }: Props) {
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
   const [costFilter, setCostFilter] = useState<"all" | "free" | "paid">("all");
   const [sortBy, setSortBy] = useState<"date" | "distance">("date");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -64,12 +65,27 @@ export default function EventsView({ events }: Props) {
   }, [events, effectiveLat, effectiveLng]);
 
   const filtered = useMemo(() => {
+    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+
     let result = eventsWithDistance.filter(({ event }) => {
       if (event.isCanceled) return false;
       if (selectedCategories.length > 0 && !selectedCategories.includes(event.category)) return false;
       if (costFilter === "free" && event.cost !== "Free") return false;
       if (costFilter === "paid" && event.cost === "Free") return false;
       if (selectedBorough && !userLat && event.venue.borough !== selectedBorough) return false;
+      if (words.length > 0) {
+        const haystack = [
+          event.title,
+          event.description,
+          event.venue.name,
+          event.venue.address,
+          event.venue.borough,
+          CATEGORIES.find((c) => c.value === event.category)?.label ?? event.category,
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!words.every((w) => haystack.includes(w))) return false;
+      }
       return true;
     });
 
@@ -83,7 +99,7 @@ export default function EventsView({ events }: Props) {
     });
 
     return result;
-  }, [eventsWithDistance, selectedCategories, costFilter, sortBy, selectedBorough, userLat]);
+  }, [eventsWithDistance, selectedCategories, costFilter, sortBy, selectedBorough, userLat, query]);
 
   function toggleCategory(cat: Category) {
     setSelectedCategories((prev) =>
@@ -139,6 +155,31 @@ export default function EventsView({ events }: Props) {
       {/* Filter bar */}
       <div className="bg-white border-b border-stone-200 sticky top-14 z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3">
+          {/* Keyword search */}
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm pointer-events-none">
+              🔍
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search events, venues, keywords..."
+              aria-label="Search events by keyword"
+              className="w-full rounded-full border border-stone-300 pl-9 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-700 text-sm"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           {/* Category chips */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <button
@@ -208,10 +249,12 @@ export default function EventsView({ events }: Props) {
       <div className="max-w-6xl mx-auto w-full px-4 py-6">
         <p className="text-sm text-stone-500 mb-4">
           {filtered.length === 0
-            ? "No events match your filters."
+            ? query.trim()
+              ? `No events match “${query.trim()}” with your filters.`
+              : "No events match your filters."
             : `${filtered.length} event${filtered.length !== 1 ? "s" : ""}${
                 selectedBorough && !userLat ? ` in ${selectedBorough}` : ""
-              }`}
+              }${query.trim() ? ` matching “${query.trim()}”` : ""}`}
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(({ event, distance }) => (
