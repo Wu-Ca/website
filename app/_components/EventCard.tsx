@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Event } from "@/lib/types";
 import { getCategoryMeta } from "@/lib/categories";
-import { formatEventDate, SOURCE_LABELS, formatDistance } from "@/lib/utils";
+import { formatEventDate, SOURCE_BADGE_LABELS, formatDistance } from "@/lib/utils";
 
 interface Props {
   event: Event;
@@ -12,6 +12,7 @@ const SOURCE_BADGE: Record<string, string> = {
   NYPL: "bg-red-50 text-red-700 border border-red-200",
   BPL: "bg-blue-50 text-blue-700 border border-blue-200",
   QPL: "bg-purple-50 text-purple-700 border border-purple-200",
+  COMMUNITY: "bg-emerald-50 text-emerald-700 border border-emerald-200",
 };
 
 export default function EventCard({ event, distance }: Props) {
@@ -37,7 +38,7 @@ export default function EventCard({ event, distance }: Props) {
               SOURCE_BADGE[event.source] ?? "bg-stone-100 text-stone-600"
             }`}
           >
-            {event.source}
+            {SOURCE_BADGE_LABELS[event.source] ?? event.source}
           </span>
         </div>
 

@@ -703,12 +703,5 @@ export const EVENTS: Event[] = [
   },
 ];
 
-export function getEventById(id: string): Event | undefined {
-  return EVENTS.find((e) => e.id === id);
-}
-
-export function getRelatedEvents(event: Event, limit = 3): Event[] {
-  return EVENTS.filter(
-    (e) => e.id !== event.id && (e.category === event.category || e.venue.borough === event.venue.borough)
-  ).slice(0, limit);
-}
+// Event lookups live in lib/events.ts, which merges these aggregated
+// library events with community-organization events.

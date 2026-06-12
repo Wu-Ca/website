@@ -1,24 +1,31 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getEventById, getRelatedEvents, EVENTS } from "@/lib/mock-data";
+import { getEvent, getRelatedEvents } from "@/lib/events";
+import {
+  countEventRegistrations,
+  getActiveRegistration,
+  getOrganizationById,
+} from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { getCategoryMeta } from "@/lib/categories";
 import { formatFullDate, formatTime, SOURCE_LABELS } from "@/lib/utils";
+import {
+  registerForEvent,
+  cancelRegistration,
+} from "@/app/actions/registrations";
 import Header from "@/app/_components/Header";
 import EventCard from "@/app/_components/EventCard";
 import InterestedButton from "./InterestedButton";
+import type { Event, Registration, User } from "@/lib/types";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
-export async function generateStaticParams() {
-  return EVENTS.map((e) => ({ id: e.id }));
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const event = getEventById(id);
+  const event = await getEvent(id);
   if (!event) return {};
   return {
     title: `${event.title} — CommonGround NYC`,
@@ -28,16 +35,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function EventPage({ params }: Props) {
   const { id } = await params;
-  const event = getEventById(id);
+  const event = await getEvent(id);
   if (!event) notFound();
 
-  const related = getRelatedEvents(event);
+  const user = await getCurrentUser();
+  const registration = user
+    ? await getActiveRegistration(user.id, event.id)
+    : undefined;
+  const registeredCount = await countEventRegistrations(event.id);
+  const hostOrg = event.organizationId
+    ? await getOrganizationById(event.organizationId)
+    : undefined;
+
+  const related = await getRelatedEvents(event);
   const categoryMeta = getCategoryMeta(event.category);
 
   const SOURCE_BADGE: Record<string, string> = {
     NYPL: "bg-red-50 text-red-700 border border-red-200",
     BPL: "bg-blue-50 text-blue-700 border border-blue-200",
     QPL: "bg-purple-50 text-purple-700 border border-purple-200",
+    COMMUNITY: "bg-emerald-50 text-emerald-700 border border-emerald-200",
   };
 
   return (
@@ -53,6 +70,18 @@ export default async function EventPage({ params }: Props) {
             <span>All events</span>
           </Link>
 
+          {event.isCanceled && (
+            <div className="mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+              <p className="text-sm font-semibold text-red-800">
+                This event has been canceled
+              </p>
+              <p className="mt-0.5 text-sm text-red-700">
+                Registration is closed. If you were registered, you don&apos;t
+                need to do anything.
+              </p>
+            </div>
+          )}
+
           <article className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
             <div className="bg-emerald-900 px-6 py-8 text-white">
               <div className="flex flex-wrap gap-2 mb-3">
@@ -66,10 +95,15 @@ export default async function EventPage({ params }: Props) {
                     SOURCE_BADGE[event.source] ?? "bg-white/10 text-white"
                   }`}
                 >
-                  {SOURCE_LABELS[event.source] ?? event.source}
+                  {hostOrg?.name ?? SOURCE_LABELS[event.source] ?? event.source}
                 </span>
               </div>
               <h1 className="text-2xl font-bold leading-tight">{event.title}</h1>
+              {hostOrg && (
+                <p className="mt-2 text-sm text-emerald-200">
+                  Hosted by {hostOrg.name}
+                </p>
+              )}
             </div>
 
             <div className="px-6 py-6 flex flex-col gap-6">
@@ -150,11 +184,19 @@ export default async function EventPage({ params }: Props) {
 
               <hr className="border-stone-100" />
 
-              {/* Interested button */}
-              <InterestedButton
-                eventId={event.id}
-                initialCount={event.interestedCount}
-              />
+              {/* Register / Interested */}
+              <div className="flex flex-col items-center gap-5">
+                <RegistrationSection
+                  event={event}
+                  user={user}
+                  registration={registration}
+                  registeredCount={registeredCount}
+                />
+                <InterestedButton
+                  eventId={event.id}
+                  initialCount={event.interestedCount}
+                />
+              </div>
             </div>
           </article>
 
@@ -174,6 +216,85 @@ export default async function EventPage({ params }: Props) {
         </div>
       </main>
     </>
+  );
+}
+
+function RegistrationSection({
+  event,
+  user,
+  registration,
+  registeredCount,
+}: {
+  event: Event;
+  user: User | null;
+  registration: Registration | undefined;
+  registeredCount: number;
+}) {
+  if (event.isCanceled) {
+    return (
+      <p className="text-sm text-stone-400">
+        This event has been canceled — registration is closed.
+      </p>
+    );
+  }
+
+  if (registration) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <div className="rounded-full bg-emerald-800 text-white font-semibold text-sm px-8 py-3">
+          ✓ You&apos;re registered
+        </div>
+        <form action={cancelRegistration}>
+          <input type="hidden" name="registrationId" value={registration.id} />
+          <input type="hidden" name="eventId" value={event.id} />
+          <button
+            type="submit"
+            className="text-xs text-stone-400 hover:text-red-600 underline"
+          >
+            Cancel my registration
+          </button>
+        </form>
+        <p className="text-xs text-stone-400">
+          {registeredCount} {registeredCount === 1 ? "person" : "people"}{" "}
+          registered
+        </p>
+      </div>
+    );
+  }
+
+  if (user) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <form action={registerForEvent} className="w-full sm:w-auto">
+          <input type="hidden" name="eventId" value={event.id} />
+          <button
+            type="submit"
+            className="w-full sm:w-auto px-8 py-3 rounded-full font-semibold text-sm bg-emerald-800 text-white hover:bg-emerald-700 transition-colors"
+          >
+            Register for this event
+          </button>
+        </form>
+        <p className="text-xs text-stone-400">
+          {registeredCount} {registeredCount === 1 ? "person" : "people"}{" "}
+          registered
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <Link
+        href={`/login?next=${encodeURIComponent(`/events/${event.id}`)}`}
+        className="w-full sm:w-auto text-center px-8 py-3 rounded-full font-semibold text-sm bg-emerald-800 text-white hover:bg-emerald-700 transition-colors"
+      >
+        Sign in to register
+      </Link>
+      <p className="text-xs text-stone-400">
+        {registeredCount} {registeredCount === 1 ? "person" : "people"}{" "}
+        registered
+      </p>
+    </div>
   );
 }
 

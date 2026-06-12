@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { EVENTS } from "@/lib/mock-data";
+import { getAllEvents } from "@/lib/events";
 import Header from "./_components/Header";
 import EventsView from "./_components/EventsView";
 
@@ -9,7 +9,12 @@ export const metadata: Metadata = {
     "Discover free workshops, readings, classes, and events at NYPL, Brooklyn Public Library, and Queens Public Library near you.",
 };
 
-export default function HomePage() {
+// Event listings come from the database and must be fresh on every request,
+// so opt out of build-time prerendering.
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const events = await getAllEvents();
   return (
     <>
       <Header />
@@ -26,7 +31,7 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-        <EventsView events={EVENTS} />
+        <EventsView events={events} />
       </main>
     </>
   );

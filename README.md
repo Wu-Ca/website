@@ -1,5 +1,33 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Supabase setup
+
+Auth (email magic links) and data (organizations, events, registrations) are
+backed by [Supabase](https://supabase.com). One-time setup:
+
+1. **Env vars** — set these in Vercel (the Supabase integration does this
+   automatically) and locally in `.env.local` (`vercel env pull` works too):
+
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=...
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+   SUPABASE_SERVICE_ROLE_KEY=...   # server-only, never exposed to the browser
+   ```
+
+2. **Schema** — run `supabase/migrations/20260612000000_init.sql` in the
+   Supabase SQL editor (or `supabase db push` if you use the CLI).
+
+3. **Auth config** — in the Supabase dashboard under Authentication → URL
+   Configuration, set your Site URL and add your deployment URLs (including
+   Vercel preview URLs and `http://localhost:3000`) to the redirect allowlist
+   so magic links can return to `/auth/callback`.
+
+   Optional but recommended: change the Magic Link email template to link to
+   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email` so
+   sign-in links work even when opened in a different browser than the one
+   that requested them (the default `{{ .ConfirmationURL }}` PKCE flow also
+   works and is supported by the callback route).
+
 ## Getting Started
 
 First, run the development server:

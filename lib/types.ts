@@ -5,7 +5,7 @@ export type Borough =
   | "Bronx"
   | "Staten Island";
 
-export type Source = "NYPL" | "BPL" | "QPL";
+export type Source = "NYPL" | "BPL" | "QPL" | "COMMUNITY";
 
 export type Category =
   | "arts-crafts"
@@ -45,6 +45,30 @@ export interface Event {
   isCanceled: boolean;
   sourceEventId: string;
   interestedCount: number;
+  /** Set when the event was created by a community organization on this site. */
+  organizationId?: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  description: string;
+  ownerUserId: string;
+  createdAt: string;
+}
+
+export interface Registration {
+  id: string;
+  userId: string;
+  eventId: string;
+  createdAt: string;
+  canceledAt: string | null;
 }
 
 export interface FilterState {
